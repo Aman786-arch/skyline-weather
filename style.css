@@ -7,16 +7,37 @@
   --line: #e8edf2;
   --paper: #f6f8fb;
   --white: #fff;
+  --topbar: rgba(255, 255, 255, 0.82);
+  --control: #eef2f6;
+  --card-tint: #f4faff;
+  --warm-soft: #fff3e4;
   --sky: #dbeeff;
   --blue: #4c9eea;
   --blue-deep: #3079c8;
   --peach: #ffb98f;
+}
+:root[data-theme="dark"] {
+  --ink: #edf4fa;
+  --muted: #93a3b4;
+  --line: #2a3949;
+  --paper: #111923;
+  --white: #1b2734;
+  --topbar: rgba(21, 31, 43, 0.9);
+  --control: #223141;
+  --card-tint: #1c3040;
+  --warm-soft: #3b3025;
+  --sky: #1e405d;
+  --blue: #67b2f4;
+  --blue-deep: #82c4fb;
 }
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: "DM Sans", sans-serif;
+  transition:
+    background 180ms ease,
+    color 180ms ease;
 }
 button,
 input {
@@ -34,7 +55,7 @@ button {
 .topbar {
   height: 84px;
   padding: 0 clamp(22px, 6vw, 94px);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--topbar);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -107,14 +128,14 @@ button {
   height: 38px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: white;
+  background: var(--white);
   color: var(--muted);
 }
 .unit-toggle {
   display: flex;
   padding: 3px;
   border-radius: 9px;
-  background: #eef2f6;
+  background: var(--control);
 }
 .unit-toggle button {
   padding: 5px 9px;
@@ -125,7 +146,7 @@ button {
 }
 .unit-toggle .active {
   color: var(--ink);
-  background: white;
+  background: var(--white);
   box-shadow: 0 1px 3px #cbd4df;
 }
 .avatar {
@@ -225,7 +246,7 @@ h2 {
   box-shadow: 0 8px 24px rgba(35, 62, 89, 0.035);
 }
 .current-card {
-  background: linear-gradient(135deg, #fff 53%, #f4faff);
+  background: linear-gradient(135deg, var(--white) 53%, var(--card-tint));
 }
 .card-top,
 .card-heading {
@@ -263,7 +284,7 @@ h2 {
   height: 107px;
   border-radius: 50%;
   color: #efaa68;
-  background: #fff3e4;
+  background: var(--warm-soft);
 }
 .temperature {
   display: flex;
@@ -343,7 +364,7 @@ h2 {
   height: 40px;
   color: #e99756;
   background: #fff5d9;
-  border: 6px solid white;
+  border: 6px solid var(--white);
   border-radius: 50%;
   box-shadow: 0 3px 10px #edc985;
 }
@@ -407,7 +428,7 @@ h2 {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: white;
+  background: var(--white);
 }
 .hour {
   min-height: 150px;
@@ -483,7 +504,7 @@ h2 {
 }
 .forecast-day.today {
   color: var(--ink);
-  background: white;
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 10px;
 }

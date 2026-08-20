@@ -103,9 +103,16 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [unit, setUnit] = useState("C");
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("skyline-theme") || "light",
+  );
   useEffect(() => {
     window.lucide?.createIcons();
   }, [weather, unit, loading, error]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("skyline-theme", theme);
+  }, [theme]);
 
   const search = async (event) => {
     event?.preventDefault();
@@ -198,6 +205,15 @@ function App() {
               °F
             </button>
           </div>
+          <button
+            className="icon-button theme-toggle"
+            type="button"
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+            title={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+            onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          >
+            <Icon name={theme === "light" ? "moon" : "sun"} size={18} />
+          </button>
           <div className="avatar">JD</div>
         </div>
       </header>
