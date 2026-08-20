@@ -88,8 +88,8 @@ function SkyScene({ theme }) {
     const THREE = window.THREE;
     const canvas = canvasRef.current;
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0, 8);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+    camera.position.set(0, 0.2, 9);
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
@@ -98,69 +98,178 @@ function SkyScene({ theme }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    const sun = new THREE.Mesh(
-      new THREE.SphereGeometry(1.05, 32, 32),
-      new THREE.MeshStandardMaterial({
-        color: theme === "dark" ? 0xffcb78 : 0xffb76b,
-        roughness: 0.6,
-        emissive: 0xff9e55,
-        emissiveIntensity: 0.25,
+    const globe = new THREE.Group();
+    globe.position.set(2.3, 0.55, -0.65);
+    globe.rotation.set(-0.16, -0.42, 0.08);
+    scene.add(globe);
+
+    const blue = theme === "dark" ? 0x1d6590 : 0x79bfe7;
+    const paleBlue = theme === "dark" ? 0x92d5f5 : 0xdff4ff;
+    const accent = theme === "dark" ? 0x72c5ff : 0x3c9ad5;
+
+    const earth = new THREE.Mesh(
+      new THREE.SphereGeometry(2.08, 64, 64),
+      new THREE.MeshPhysicalMaterial({
+        color: blue,
+        roughness: 0.72,
+        metalness: 0.04,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.3,
       }),
     );
-    sun.position.set(2.7, 1.25, -1.2);
-    scene.add(sun);
+    globe.add(earth);
+
+    const grid = new THREE.Group();
+    const gridMaterial = new THREE.LineBasicMaterial({
+      color: paleBlue,
+      transparent: true,
+      opacity: 0.2,
+    });
+    for (let latitude = -60; latitude <= 60; latitude += 30) {
+      const radius = Math.cos(THREE.MathUtils.degToRad(latitude)) * 2.095;
+      const y = Math.sin(THREE.MathUtils.degToRad(latitude)) * 2.095;
+      const points = [];
+      for (let segment = 0; segment <= 96; segment += 1) {
+        const angle = (segment / 96) * Math.PI * 2;
+        points.push(
+          new THREE.Vector3(
+            Math.cos(angle) * radius,
+            y,
+            Math.sin(angle) * radius,
+          ),
+        );
+      }
+      grid.add(
+        new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(points),
+          gridMaterial,
+        ),
+      );
+    }
+    for (let longitude = 0; longitude < 180; longitude += 30) {
+      const points = [];
+      const angle = THREE.MathUtils.degToRad(longitude);
+      for (let segment = 0; segment <= 64; segment += 1) {
+        const phi = (segment / 64) * Math.PI - Math.PI / 2;
+        points.push(
+          new THREE.Vector3(
+            Math.cos(phi) * Math.cos(angle) * 2.1,
+            Math.sin(phi) * 2.1,
+            Math.cos(phi) * Math.sin(angle) * 2.1,
+          ),
+        );
+      }
+      grid.add(
+        new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(points),
+          gridMaterial,
+        ),
+      );
+    }
+    globe.add(grid);
+
+    const cloudShell = new THREE.Mesh(
+      new THREE.SphereGeometry(2.16, 48, 48),
+      new THREE.MeshPhysicalMaterial({
+        color: paleBlue,
+        transparent: true,
+        opacity: 0.17,
+        roughness: 0.95,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    cloudShell.scale.set(1.01, 0.98, 1.02);
+    globe.add(cloudShell);
 
     const atmosphere = new THREE.Mesh(
-      new THREE.SphereGeometry(1.55, 32, 32),
+      new THREE.SphereGeometry(2.28, 48, 48),
       new THREE.MeshBasicMaterial({
-        color: theme === "dark" ? 0x438bc2 : 0x89c9f4,
+        color: accent,
+        transparent: true,
+        opacity: 0.14,
+        side: THREE.BackSide,
+        depthWrite: false,
+      }),
+    );
+    globe.add(atmosphere);
+
+    const orbit = new THREE.Group();
+    [2.72, 2.92].forEach((radius, index) => {
+      const line = new THREE.Mesh(
+        new THREE.TorusGeometry(radius, index ? 0.008 : 0.014, 8, 128),
+        new THREE.MeshBasicMaterial({
+          color: accent,
+          transparent: true,
+          opacity: index ? 0.2 : 0.38,
+        }),
+      );
+      line.rotation.set(index ? 1.05 : 0.62, index ? -0.2 : 0.4, 0.2);
+      orbit.add(line);
+    });
+    globe.add(orbit);
+
+    const dataArc = new THREE.Mesh(
+      new THREE.TorusGeometry(2.48, 0.026, 8, 96, Math.PI * 0.72),
+      new THREE.MeshBasicMaterial({
+        color: 0xffbd72,
+        transparent: true,
+        opacity: 0.9,
+      }),
+    );
+    dataArc.rotation.set(0.3, 0.8, -0.45);
+    globe.add(dataArc);
+
+    const stormCount = 140;
+    const stormPositions = new Float32Array(stormCount * 3);
+    for (let i = 0; i < stormCount; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 2.5 + Math.random() * 1.05;
+      stormPositions[i * 3] = Math.cos(angle) * radius;
+      stormPositions[i * 3 + 1] = (Math.random() - 0.5) * 4.8;
+      stormPositions[i * 3 + 2] = Math.sin(angle) * radius - 0.5;
+    }
+    const stormGeometry = new THREE.BufferGeometry();
+    stormGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(stormPositions, 3),
+    );
+    const stormField = new THREE.Points(
+      stormGeometry,
+      new THREE.PointsMaterial({
+        color: accent,
+        size: 0.025,
+        transparent: true,
+        opacity: 0.65,
+      }),
+    );
+    scene.add(stormField);
+
+    const sun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.68, 32, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0xffbf70,
+        emissive: 0xff8e45,
+        emissiveIntensity: 0.7,
+        roughness: 0.5,
+      }),
+    );
+    sun.position.set(-3.2, 2.7, -1.8);
+    scene.add(sun);
+    const sunHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(1.05, 32, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xffbd72,
         transparent: true,
         opacity: 0.1,
         side: THREE.BackSide,
       }),
     );
-    atmosphere.position.copy(sun.position);
-    scene.add(atmosphere);
+    sunHalo.position.copy(sun.position);
+    scene.add(sunHalo);
 
-    const cloud = new THREE.Group();
-    const cloudMaterial = new THREE.MeshStandardMaterial({
-      color: theme === "dark" ? 0x8ebbd5 : 0xd9efff,
-      roughness: 0.9,
-      transparent: true,
-      opacity: 0.85,
-    });
-    [
-      [-1.4, 0.25, 0.2, 1.25],
-      [-0.55, 0.55, 0.1, 0.95],
-      [0.35, 0.25, 0.15, 1.1],
-      [1.05, 0.2, 0.25, 0.75],
-    ].forEach(([x, y, z, scale]) => {
-      const puff = new THREE.Mesh(
-        new THREE.SphereGeometry(scale, 20, 20),
-        cloudMaterial,
-      );
-      puff.scale.y = 0.55;
-      puff.position.set(x, y, z);
-      cloud.add(puff);
-    });
-    cloud.position.set(-1.1, -0.45, 0);
-    scene.add(cloud);
-
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(2.1, 0.012, 8, 96),
-      new THREE.MeshBasicMaterial({
-        color: theme === "dark" ? 0x65b4ed : 0x62a8dc,
-        transparent: true,
-        opacity: 0.32,
-      }),
-    );
-    ring.rotation.x = 1.08;
-    ring.rotation.y = -0.18;
-    ring.position.set(1.7, 0.4, -1.5);
-    scene.add(ring);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
-    const keyLight = new THREE.PointLight(0xffc77b, 10, 12);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+    const keyLight = new THREE.PointLight(0xffc77b, 18, 18);
     keyLight.position.copy(sun.position);
     scene.add(keyLight);
 
@@ -181,8 +290,12 @@ function SkyScene({ theme }) {
     let frame;
     const animate = () => {
       frame = requestAnimationFrame(animate);
-      cloud.rotation.y += 0.0015;
-      ring.rotation.z += 0.001;
+      globe.rotation.y += 0.0018;
+      cloudShell.rotation.y += 0.0025;
+      grid.rotation.y += 0.0008;
+      orbit.rotation.z += 0.0012;
+      dataArc.rotation.z += 0.003;
+      stormField.rotation.y -= 0.0007;
       scene.rotation.y += (pointer.x * 0.035 - scene.rotation.y) * 0.03;
       scene.rotation.x += (-pointer.y * 0.018 - scene.rotation.x) * 0.03;
       renderer.render(scene, camera);
