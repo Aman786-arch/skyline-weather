@@ -1,4 +1,4 @@
-const { useEffect, useState } = React;
+const { useEffect, useRef, useState } = React;
 
 const demoWeather = {
   place: "San Francisco, CA",
@@ -80,6 +80,126 @@ function formatHour(time) {
     .replace(" ", "");
 }
 
+function SkyScene({ theme }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.THREE || !canvasRef.current) return undefined;
+    const THREE = window.THREE;
+    const canvas = canvasRef.current;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(0, 0, 8);
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const sun = new THREE.Mesh(
+      new THREE.SphereGeometry(1.05, 32, 32),
+      new THREE.MeshStandardMaterial({
+        color: theme === "dark" ? 0xffcb78 : 0xffb76b,
+        roughness: 0.6,
+        emissive: 0xff9e55,
+        emissiveIntensity: 0.25,
+      }),
+    );
+    sun.position.set(2.7, 1.25, -1.2);
+    scene.add(sun);
+
+    const atmosphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1.55, 32, 32),
+      new THREE.MeshBasicMaterial({
+        color: theme === "dark" ? 0x438bc2 : 0x89c9f4,
+        transparent: true,
+        opacity: 0.1,
+        side: THREE.BackSide,
+      }),
+    );
+    atmosphere.position.copy(sun.position);
+    scene.add(atmosphere);
+
+    const cloud = new THREE.Group();
+    const cloudMaterial = new THREE.MeshStandardMaterial({
+      color: theme === "dark" ? 0x8ebbd5 : 0xd9efff,
+      roughness: 0.9,
+      transparent: true,
+      opacity: 0.85,
+    });
+    [
+      [-1.4, 0.25, 0.2, 1.25],
+      [-0.55, 0.55, 0.1, 0.95],
+      [0.35, 0.25, 0.15, 1.1],
+      [1.05, 0.2, 0.25, 0.75],
+    ].forEach(([x, y, z, scale]) => {
+      const puff = new THREE.Mesh(
+        new THREE.SphereGeometry(scale, 20, 20),
+        cloudMaterial,
+      );
+      puff.scale.y = 0.55;
+      puff.position.set(x, y, z);
+      cloud.add(puff);
+    });
+    cloud.position.set(-1.1, -0.45, 0);
+    scene.add(cloud);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(2.1, 0.012, 8, 96),
+      new THREE.MeshBasicMaterial({
+        color: theme === "dark" ? 0x65b4ed : 0x62a8dc,
+        transparent: true,
+        opacity: 0.32,
+      }),
+    );
+    ring.rotation.x = 1.08;
+    ring.rotation.y = -0.18;
+    ring.position.set(1.7, 0.4, -1.5);
+    scene.add(ring);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+    const keyLight = new THREE.PointLight(0xffc77b, 10, 12);
+    keyLight.position.copy(sun.position);
+    scene.add(keyLight);
+
+    const pointer = { x: 0, y: 0 };
+    const move = (event) => {
+      pointer.x = (event.clientX / window.innerWidth - 0.5) * 2;
+      pointer.y = (event.clientY / window.innerHeight - 0.5) * 2;
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    const resize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    resize();
+    let frame;
+    const animate = () => {
+      frame = requestAnimationFrame(animate);
+      cloud.rotation.y += 0.0015;
+      ring.rotation.z += 0.001;
+      scene.rotation.y += (pointer.x * 0.035 - scene.rotation.y) * 0.03;
+      scene.rotation.x += (-pointer.y * 0.018 - scene.rotation.x) * 0.03;
+      renderer.render(scene, camera);
+    };
+    animate();
+    window.addEventListener("resize", resize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("pointermove", move);
+      renderer.dispose();
+    };
+  }, [theme]);
+
+  return <canvas className="sky-scene" ref={canvasRef} aria-hidden="true" />;
+}
+
 async function fetchWeather(query) {
   const locationResponse = await fetch(
     `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`,
@@ -159,6 +279,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <SkyScene theme={theme} />
       <header className="topbar">
         <a className="brand" href="#top">
           <span className="brand-mark">
