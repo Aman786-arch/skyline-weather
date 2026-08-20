@@ -106,15 +106,37 @@ function SkyScene({ theme }) {
     const blue = theme === "dark" ? 0x1d6590 : 0x79bfe7;
     const paleBlue = theme === "dark" ? 0x92d5f5 : 0xdff4ff;
     const accent = theme === "dark" ? 0x72c5ff : 0x3c9ad5;
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin("anonymous");
+    const earthTexture = textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+    );
+    const earthNormal = textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_normal_2048.jpg",
+    );
+    const earthSpecular = textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_specular_2048.jpg",
+    );
+    const earthLights = textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
+    );
+    const cloudTexture = textureLoader.load(
+      "https://threejs.org/examples/textures/planets/earth_clouds_1024.png",
+    );
 
     const earth = new THREE.Mesh(
       new THREE.SphereGeometry(2.08, 64, 64),
-      new THREE.MeshPhysicalMaterial({
-        color: blue,
-        roughness: 0.72,
-        metalness: 0.04,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.3,
+      new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        map: earthTexture,
+        bumpMap: earthNormal,
+        bumpScale: 0.06,
+        specularMap: earthSpecular,
+        specular: new THREE.Color(0x6da8c8),
+        shininess: 16,
+        emissiveMap: earthLights,
+        emissive: new THREE.Color(0x31586b),
+        emissiveIntensity: theme === "dark" ? 0.6 : 0.25,
       }),
     );
     globe.add(earth);
@@ -170,11 +192,12 @@ function SkyScene({ theme }) {
 
     const cloudShell = new THREE.Mesh(
       new THREE.SphereGeometry(2.16, 48, 48),
-      new THREE.MeshPhysicalMaterial({
-        color: paleBlue,
+      new THREE.MeshPhongMaterial({
+        color: 0xffffff,
+        map: cloudTexture,
         transparent: true,
-        opacity: 0.17,
-        roughness: 0.95,
+        opacity: 0.65,
+        depthTest: true,
         depthWrite: false,
         side: THREE.DoubleSide,
       }),
@@ -290,14 +313,16 @@ function SkyScene({ theme }) {
     let frame;
     const animate = () => {
       frame = requestAnimationFrame(animate);
-      globe.rotation.y += 0.0018;
-      cloudShell.rotation.y += 0.0025;
+      globe.rotation.y += 0.0018 + pointer.x * 0.0012;
+      globe.rotation.x += (-0.16 + pointer.y * 0.12 - globe.rotation.x) * 0.025;
+      cloudShell.rotation.y += 0.0025 + pointer.x * 0.0018;
       grid.rotation.y += 0.0008;
       orbit.rotation.z += 0.0012;
       dataArc.rotation.z += 0.003;
       stormField.rotation.y -= 0.0007;
-      scene.rotation.y += (pointer.x * 0.035 - scene.rotation.y) * 0.03;
-      scene.rotation.x += (-pointer.y * 0.018 - scene.rotation.x) * 0.03;
+      camera.position.x += (pointer.x * 0.7 - camera.position.x) * 0.025;
+      camera.position.y += (0.2 - pointer.y * 0.35 - camera.position.y) * 0.025;
+      camera.lookAt(globe.position.x, globe.position.y, globe.position.z);
       renderer.render(scene, camera);
     };
     animate();
