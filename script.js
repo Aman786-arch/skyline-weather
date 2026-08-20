@@ -99,7 +99,12 @@ function SkyScene({ theme }) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const globe = new THREE.Group();
-    globe.position.set(2.3, 0.55, -0.65);
+    const compactViewport = window.innerWidth < 760;
+    globe.position.set(
+      compactViewport ? 0.85 : 2.3,
+      compactViewport ? 1.25 : 0.55,
+      -0.65,
+    );
     globe.rotation.set(-0.16, -0.42, 0.08);
     scene.add(globe);
 
@@ -109,7 +114,7 @@ function SkyScene({ theme }) {
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin("anonymous");
     const earthTexture = textureLoader.load(
-      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+      "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57730/land_ocean_ice_2048.png",
     );
     const earthNormal = textureLoader.load(
       "https://threejs.org/examples/textures/planets/earth_normal_2048.jpg",
